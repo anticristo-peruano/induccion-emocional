@@ -5,7 +5,7 @@
 .songs/
 .vscode/
 functions/environment/*.pth
-asa.ipynb
+unimportant_processes.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
