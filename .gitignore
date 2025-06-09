@@ -2,7 +2,10 @@
 .devcontainer/
 .data/
 .scrapped/
+.songs/
+.vscode/
 functions/environment/*.pth
+asa.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -95,9 +95,9 @@ def DYNAQ(trainer,S1,A1,R1,S2,A2=None):
 def plot_steps(title,steps):
     plt.figure()
     plt.plot(steps)
-    plt.title(f"Pasos para alcanzar canción feliz\n{title}")
-    plt.xlabel("Episodio")
-    plt.ylabel("Pasos (≤ 30)")
+    plt.title(f"Steps to induce happiness\n{title}")
+    plt.xlabel("Episode")
+    plt.ylabel("Steps (≤ 30)")
     plt.ylim(0, 30+1)
     plt.tight_layout()
     plt.show()

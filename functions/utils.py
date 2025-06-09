@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+import yt_dlp
 import os
+from tqdm import tqdm
 
 need_cols = ["track_id", "track_name", "valence",
              "energy", "danceability", "popularity"]
@@ -39,3 +41,26 @@ def open_process(CSV_FILE,SEED,N_TRACKS):
     sim_mat = np.clip(vec @ vec.T, 0, 1)   # shape (N_TRACKS, N_TRACKS)
 
     return df, sim_mat
+
+def spotify_download(csv):
+    df = pd.read_csv('.data/dataset.csv')
+
+    for (_, (id, artist, track)) in tqdm(df[['track_id', 'artists', 'track_name']].iterrows()):
+        track_name = f'{track} by {artist}'.replace("/","_")
+
+        ydl_opts = {
+                    'format': 'bestaudio/best',
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '192',
+                    }],
+                    'outtmpl': os.path.join('.songs', f"{id}.%(ext)s"),
+                    'default_search': 'ytsearch',
+                }
+        
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download(track_name)
+        except Exception as e:
+            print(f'Error downloading {track_name}: {e}')
