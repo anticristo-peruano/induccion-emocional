@@ -80,15 +80,15 @@ class trainer:
         return steps_ep
     
 # -------- Politics ---------
-def SARSA(trainer,S1,A1,R,S2,A2):
-    trainer.Q[S1,A1] += trainer.alpha * ((R + trainer.gamma * trainer.Q[S2,A2]) - trainer.Q[S1,A1])
+def SARSA(trainer,S1,A1,R1,S2,A2):
+    trainer.Q[S1,A1] += trainer.alpha * ((R1 + trainer.gamma * trainer.Q[S2,A2]) - trainer.Q[S1,A1])
 
-def Q_LEARNING(trainer,S1,A1,R,S2,A2=None):
-    trainer.Q[S1,A1] += trainer.alpha * ((R + trainer.gamma * np.max(trainer.Q[S2])) - trainer.Q[S1,A1])
+def Q_LEARNING(trainer,S1,A1,R1,S2,A2=None):
+    trainer.Q[S1,A1] += trainer.alpha * ((R1 + trainer.gamma * np.max(trainer.Q[S2])) - trainer.Q[S1,A1])
 
-def DYNAQ(trainer,S1,A1,R,S2,A2=None):
+def DYNAQ(trainer,S1,A1,R1,S2,A2=None):
     trainer.alpha = (1.0/trainer.NSA[S1,A1])
-    trainer.Q[S1,A1] += trainer.alpha * ((R + trainer.gamma * np.max(trainer.Q[S2])) - trainer.Q[S1,A1])
+    trainer.Q[S1,A1] += trainer.alpha * ((R1 + trainer.gamma * np.max(trainer.Q[S2])) - trainer.Q[S1,A1])
     trainer.NSA[S1,A1] += 1
 
 # -------- Graphic design ---------
