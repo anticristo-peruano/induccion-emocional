@@ -98,6 +98,6 @@ def plot_steps(title,steps):
     plt.title(f"Pasos para alcanzar canción feliz\n{title}")
     plt.xlabel("Episodio")
     plt.ylabel("Pasos (≤ 30)")
-    plt.ylim(0, len(steps) + 1)
+    plt.ylim(0, 30+1)
     plt.tight_layout()
     plt.show()
