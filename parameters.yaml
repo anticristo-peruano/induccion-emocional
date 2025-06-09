@@ -1,0 +1,19 @@
+general:
+  csv_file: "/mnt/data/dataset.csv"
+  n_tracks: 100
+  valence_goal: 0.8
+  episodes: 2000
+  max_steps: 30
+  gamma: 0.90
+  alpha: 0.15
+  eps_start: 1.0
+  eps_min: 0.05
+  eps_decay: 0.995
+  seed: 42
+
+weights:
+  w_val: 1.0
+  w_eng: 0.7
+  w_dnc: 0.7
+  w_pop: 0.1
+  w_sim: 0.4

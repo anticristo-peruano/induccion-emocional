@@ -1,5 +1,7 @@
 # NO
 .devcontainer/
+.data/
+.scrapped/
 functions/environment/*.pth
 
 # Byte-compiled / optimized / DLL files
