@@ -1,6 +1,9 @@
 # NO
 .devcontainer/
 functions/environment/*.pth
+.songs/
+.data/
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

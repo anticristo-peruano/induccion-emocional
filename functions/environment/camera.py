@@ -2,10 +2,19 @@ import os
 import cv2 as cv
 import torch
 import numpy as np
+import pygame
+import threading
+import time
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from PIL import Image
 from .architecture import ResEmoteNet
+import warnings
+warnings.filterwarnings('ignore')
+
+"""
+FUNCIONES DE CÁMARA
+"""
 
 # Variables generales para opencv.
 face_cascade = cv.CascadeClassifier(cv.data.haarcascades + 'haarcascade_frontalface_alt.xml')
@@ -28,62 +37,110 @@ preprocess = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normaliza los valores de los píxeles
 ])
 emotions = ['happy', 'surprise', 'sad', 'anger', 'disgust', 'fear', 'neutral']
+val_aro = np.array([
+    [0.81, 0.51],   # Happy
+    [0.40, 0.67],   # Surprise
+    [-0.63, -0.27],   # Sad
+    [-0.51, 0.59],  # Angry
+    [-0.60, 0.35],  # Disgust
+    [-0.63, 0.71],   # Fear
+    [0.20, -0.20]   # Neutral
+])
 
-def predict_emotion(face):
-    """
-    Clasifica la emoción en un frame de rostro usando el modelo predictivo.
-    """
-    x = preprocess(face).unsqueeze(0).to(dev)
-    with torch.no_grad():
-        y = model(x)
-        probs = [round(score, 2) for score in F.softmax(y, dim=1).cpu().numpy().flatten()]
-    idx = np.argmax(probs)
-    return emotions[idx], probs[idx]
 
-def detect_and_display(frame):
-    """
-    Procesamiento básico de emociones en cámara.
-    """
-    frame = cv.flip(frame,1)
-    frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    frame_gray = cv.equalizeHist(frame_gray)
+def predict_vector(face):
+    try:
+        """
+        Clasifica la emoción en un frame de rostro usando el modelo predictivo.
+        """
+        x = preprocess(face).unsqueeze(0).to(dev)
+        with torch.no_grad():
+            y = model(x)
+            probs = [round(score, 2) for score in F.softmax(y, dim=1).cpu().numpy().flatten()]
+        return probs @ val_aro, True
+    except:
+        return None, False
 
-    faces = face_cascade.detectMultiScale(frame_gray, scaleFactor=1.1, minNeighbors=2, minSize=(30, 30))
-
-    for (x, y, w, h) in faces:
-        face = Image.fromarray(frame[y:y+h, x:x+w])
-        emotion, prob = predict_emotion(face)
-
-        cv.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv.putText(frame, f'{emotion} - {round(prob * 100, 2)}%', (x - 5, y - 15), font, 0.8, (0, 255, 0), 2)
-
-    cv.imshow(window_name, frame)
-
-    # TO-DO con RL: agregar un return con la emoción para combinarlo con RL.
-
-def open_camera():
+def open_camera(duration_ms,steps):
     """
     Abre la cámara y, en tiempo real, muestra las emociones detectadas.
     """
     
+    history = {
+        'step':[],
+        'timestamp':[],
+        'vector':[]
+    }
+
     cv.namedWindow(window_name)
     capture = cv.VideoCapture(0)
 
+    interval = (duration_ms / 1000.0) // (steps + 1)
+    t_init = time.time()
+    prox_cap = t_init + interval
+    caps = 0
+
     if not capture.isOpened():
         print("--(!)Error al abrir la cámara")
-        return
+        return np.array([0,0]), history
 
     while capture.isOpened():
         ret, frame = capture.read()
+        frame = cv.flip(frame,1)
+        now = time.time()
+
         if frame is None:
             print("--(!) No se capturó el frame")
             break
 
-        detect_and_display(frame)
+        # --- Visualización ---
+        faces = face_cascade.detectMultiScale(cv.cvtColor(frame,cv.COLOR_BGR2GRAY), scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv.CASCADE_SCALE_IMAGE)
+        if len(faces) > 0:
+            x, y, w, h = max(faces, key=lambda rect: rect[2] * rect[3])
+            cv.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-        # Presionar c para salir.
+            # --- Procesamientos ---
+            if caps <= steps and now >= prox_cap:
+                face = Image.fromarray(frame[y:y+h, x:x+w])
+                vector, flag = predict_vector(face)
+                
+                if flag:
+                    history['step'] += [caps + 1]
+                    history['timestamp'] += [round(now - t_init,2)]
+                    history['vector'] += [vector]
+
+                    print(f'[Step {caps + 1} - {round(now - t_init,2)} s] Valence: {round(vector[0],2)}, Arousal: {round(vector[1],2)}')
+                    caps += 1
+                    prox_cap += interval
+
+        cv.imshow(window_name,frame)
+
+        # --- Salidas ---
+        # Presionar 'c' para salir
         if cv.waitKey(1) & 0xFF == ord('c'):
+            break
+
+        # Cerrar si ya se completaron los pasos
+        if caps > steps:
             break
 
     capture.release()
     cv.destroyAllWindows()
+
+    return np.mean(history['vector'],axis=0), history
+
+"""
+Función de hilo
+"""
+
+def thread_episode(songid, duration_ms, steps):
+    ruta_mp3 = os.path.join(os.curdir,'functions','environment','.songs',f'{songid}.mp3')
+    pygame.mixer.init()
+    pygame.mixer.music.load(ruta_mp3)
+    pygame.mixer.music.play()
+
+    vector, history = open_camera(duration_ms,steps)
+    if pygame.mixer.music.get_busy():
+        pygame.mixer.music.stop()
+
+    return vector, history
